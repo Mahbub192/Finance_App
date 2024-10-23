@@ -11,14 +11,20 @@ import { ExpenseType } from "@/types";
 import Colors from "@/constants/Colors";
 import { Feather } from "@expo/vector-icons";
 
-const ExpenseBlock = ({ expensList }: { expensList: ExpenseType[] }) => {
+const ExpenseBlock = ({
+  expensList,
+  handleAddItem,
+}: {
+  expensList: ExpenseType[];
+  handleAddItem: Function;
+}) => {
   const renderItem: ListRenderItem<Partial<ExpenseType>> = ({
     item,
     index,
   }) => {
     if (index == 0) {
       return (
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => handleAddItem()}>
           <View style={styles.addItemBtn}>
             <Feather name="plus" size={22} color={"#ccc"} />
           </View>

@@ -16,5 +16,23 @@
     "name": "Spotify",
     "amount": "5.99",
     "date": "2024-05-02"
+  },
+  {
+    "id": "4",
+    "name": "AirBnB Rent",
+    "amount": "529.99",
+    "date": "2024-05-01"
+  },
+  {
+    "id": "5",
+    "name": "Netflix",
+    "amount": "10.99",
+    "date": "2024-05-02"
+  },
+  {
+    "id": "6",
+    "name": "Spotify",
+    "amount": "5.99",
+    "date": "2024-05-02"
   }
 ]
