@@ -8,12 +8,12 @@ import {
 } from "react-native";
 import React from "react";
 import Colors from "@/constants/Colors";
-import { IncomeType } from "@/types";
+import { Entry } from "@/types";
 import WalletIcon from "@/assets/icons/wallet.svg";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome6 } from "@expo/vector-icons";
 
-const IncomeBlock = ({ incomeList }: { incomeList: IncomeType[] }) => {
-  const renderItem: ListRenderItem<IncomeType> = ({ item }) => {
+const IncomeBlock = ({ incomeList }: { incomeList: Entry[] }) => {
+  const renderItem: ListRenderItem<Entry> = ({ item }) => {
     let amount = item.amount.split(".");
     return (
       <View
@@ -48,13 +48,20 @@ const IncomeBlock = ({ incomeList }: { incomeList: IncomeType[] }) => {
             <Feather name="more-horizontal" size={20} color={Colors.white} />
           </TouchableOpacity>
         </View>
-        <Text style={{ color: Colors.white }}>{item?.name}</Text>
-        <Text style={{ color: Colors.white, fontSize: 18, fontWeight: "800" }}>
-          ${amount && amount[0]}.{" "}
-          <Text style={{ fontSize: 14, fontWeight: "400" }}>
-            {amount && amount[1]}
+        <Text style={{ color: Colors.white }}>{item?.incomeType}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <FontAwesome6
+            name="bangladeshi-taka-sign"
+            size={14}
+            color={Colors.white}
+          />
+          <Text
+            style={{ color: Colors.white, fontSize: 18, fontWeight: "800" }}
+          >
+            {amount && amount[0]}.{" "}
+            <Text style={{ fontSize: 14, fontWeight: "400" }}>00</Text>
           </Text>
-        </Text>
+        </View>
       </View>
     );
   };

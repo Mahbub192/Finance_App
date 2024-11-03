@@ -7,18 +7,18 @@ import {
   View,
 } from "react-native";
 import React from "react";
-import { ExpenseType } from "@/types";
+import { ExpensePercentage, ExpenseType } from "@/types";
 import Colors from "@/constants/Colors";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome6 } from "@expo/vector-icons";
 
 const ExpenseBlock = ({
-  expensList,
+  expenseList,
   handleAddItem,
 }: {
-  expensList: ExpenseType[];
+  expenseList: ExpensePercentage[];
   handleAddItem: Function;
 }) => {
-  const renderItem: ListRenderItem<Partial<ExpenseType>> = ({
+  const renderItem: ListRenderItem<Partial<ExpensePercentage>> = ({
     item,
     index,
   }) => {
@@ -31,18 +31,12 @@ const ExpenseBlock = ({
         </TouchableOpacity>
       );
     }
-    let amount = item.amount?.split(".");
     return (
       <View
         style={[
           styles.expenseBlock,
           {
-            backgroundColor:
-              item.name == "Food"
-                ? Colors.blue
-                : item.name == "Saving"
-                ? Colors.white
-                : Colors.tintColor,
+            backgroundColor: item?.color,
           },
         ]}
       >
@@ -50,48 +44,41 @@ const ExpenseBlock = ({
           style={[
             styles.expenseBlockTxt1,
             {
-              color:
-                item.name == "Food"
-                  ? Colors.black
-                  : item.name == "Saving"
-                  ? Colors.black
-                  : Colors.white,
+              color: Colors.black,
             },
           ]}
         >
-          {item?.name}
+          {item?.index}
         </Text>
-        <Text
-          style={[
-            styles.expenseBlockTxt2,
-            {
-              color:
-                item.name == "Food"
-                  ? Colors.black
-                  : item.name == "Saving"
-                  ? Colors.black
-                  : Colors.white,
-            },
-          ]}
-        >
-          ${amount && amount[0]}.{" "}
-          <Text style={styles.expenseBlockTxt2Span}>{amount && amount[1]}</Text>
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+          <FontAwesome6
+            name="bangladeshi-taka-sign"
+            size={14}
+            color={Colors.black}
+          />
+          <Text
+            style={[
+              styles.expenseBlockTxt2,
+              {
+                color: Colors.black,
+                fontSize: 16,
+                fontWeight: "800",
+              },
+            ]}
+          >
+            {item.amount}
+          </Text>
+        </View>
         <View style={styles.expenseBlock3View}>
           <Text
             style={[
               styles.expenseBlockTxt1,
               {
-                color:
-                  item.name == "Food"
-                    ? Colors.black
-                    : item.name == "Saving"
-                    ? Colors.black
-                    : Colors.white,
+                color: Colors.black,
               },
             ]}
           >
-            %{item?.percentage}
+            {item?.label}
           </Text>
         </View>
       </View>
@@ -102,7 +89,7 @@ const ExpenseBlock = ({
   return (
     <View style={{ paddingVertical: 20 }}>
       <FlatList
-        data={staticItem.concat(expensList)}
+        data={staticItem.concat(expenseList)}
         renderItem={renderItem}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -128,10 +115,10 @@ const styles = StyleSheet.create({
   expenseBlock: {
     backgroundColor: Colors.tintColor,
     width: 100,
-    padding: 15,
+    padding: 8,
     borderRadius: 15,
     marginRight: 20,
-    gap: 8,
+    gap: 2,
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
@@ -150,8 +137,8 @@ const styles = StyleSheet.create({
   },
   expenseBlock3View: {
     backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 5,
-    paddingVertical: 3,
-    borderRadius: 10,
+    width: "100%",
+    paddingVertical: 1,
+    borderRadius: 3,
   },
 });

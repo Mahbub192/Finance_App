@@ -1,13 +1,13 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
-import { SpendingType } from "@/types";
+import { Entry } from "@/types";
 import Colors from "@/constants/Colors";
 
-const SpendingBlock = ({ spendingList }: { spendingList: SpendingType[] }) => {
+const SpendingBlock = ({ spendingList }: { spendingList: Entry[] }) => {
   return (
     <View style={{ marginVertical: 2, alignItems: "flex-start" }}>
       <Text style={{ color: Colors.white, fontSize: 16 }}>
-        July <Text style={{ fontWeight: "700" }}>Spending</Text>
+        July <Text style={{ fontWeight: "800" }}>Spending</Text>
       </Text>
       {spendingList.map((item) => {
         return (
@@ -38,17 +38,18 @@ const SpendingBlock = ({ spendingList }: { spendingList: SpendingType[] }) => {
                   style={{
                     color: Colors.white,
                     fontSize: 16,
-                    fontWeight: "600",
+                    fontWeight: "900",
                   }}
                 >
-                  {item.name}
+                  {item.incomeType}
                 </Text>
                 <Text style={{ color: Colors.white }}>{item.date}</Text>
               </View>
               <Text
-                style={{ color: Colors.white, fontSize: 16, fontWeight: "600" }}
+                style={{ color: Colors.white, fontSize: 16, fontWeight: "900" }}
               >
-                {item.amount}
+                {item.amount}.{" "}
+                <Text style={{ fontSize: 12, fontWeight: "400" }}>00</Text>
               </Text>
             </View>
           </View>

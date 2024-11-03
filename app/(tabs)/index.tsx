@@ -1,35 +1,54 @@
+import ExpenseBlock from "@/components/ExpenseBlock";
+import Header from "@/components/Header";
+import IncomeBlock from "@/components/IncomeBlock";
+import SpendingBlock from "@/components/SpendingBlock";
+import Colors from "@/constants/Colors";
+import ExpensList from "@/data/expenses.json";
+import SpendingList from "@/data/spending.json";
+import { Entry, ExpensePercentage, Income } from "@/types";
+import { FontAwesome6, MaterialIcons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Stack } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  TouchableWithoutFeedback,
+  Animated,
   Modal,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  View,
   TextInput,
-  Animated,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
-import React, { useRef, useState } from "react";
-import WalletIcon from "@/assets/icons/wallet.svg";
-import Colors from "@/constants/Colors";
-import { Stack } from "expo-router";
-import Header from "@/components/Header";
 import { PieChart } from "react-native-gifted-charts";
-import ExpenseBlock from "@/components/ExpenseBlock";
-import ExpensList from "@/data/expenses.json";
-import IncomeLIst from "@/data/income.json";
-import SpendingList from "@/data/spending.json";
-import IncomeBlock from "@/components/IncomeBlock";
-import SpendingBlock from "@/components/SpendingBlock";
-import { FontAwesome6 } from "@expo/vector-icons";
 
 const Page = () => {
   const [selected, setSelected] = useState("Income");
   const [modalVisible, setModalVisible] = useState(false);
+  const [addNewType, setAddNewType] = useState("");
   const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(new Date());
+  const [showPicker, setShowPicker] = useState(false);
+  const [dateString, setDateString] = useState(formatDate(date));
   const scaleValue = useRef(new Animated.Value(1)).current;
   const translateValue = useRef(new Animated.Value(0)).current;
+  const [myIncome, setMyIncome] = useState<Income[]>([]);
+  const [incomeData, setIncomeData] = useState<Entry[]>([]);
+  const [expenseData, setExpenseData] = useState<Entry[]>([]);
+  const [expensePercentages, setExpensePercentages] = useState<
+    ExpensePercentage[]
+  >([]);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [remainingBalance, setRemainingBalance] = useState(0);
+  const [remainingPercentage, setRemainingPercentage] = useState(0);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [transactions, setTransactions] = useState([]);
+  const db = useSQLiteContext();
+
   const pieDate = [
     {
       value: 47,
@@ -81,7 +100,7 @@ const Page = () => {
     },
     {
       id: 7,
-      type: "  Provident Fund (PF)",
+      type: "  Provident Fund",
     },
     {
       id: 8,
@@ -115,13 +134,80 @@ const Page = () => {
     },
     {
       id: 7,
-      type: "Food and Groceries",
+      type: "Food",
     },
     {
       id: 8,
       type: "Other Incentives",
     },
   ];
+
+  const showDatePicker = () => {
+    setShowPicker(true);
+  };
+
+  const colorMapping: { threshold: number; color: string }[] = [
+    { threshold: 0, color: "green" }, // 0% and below
+    { threshold: 1, color: "lightgreen" }, // 1%
+    { threshold: 2, color: "limegreen" }, // 2%
+    { threshold: 3, color: "yellowgreen" }, // 3%
+    { threshold: 4, color: "yellow" }, // 4%
+    { threshold: 5, color: "gold" }, // 5%
+    { threshold: 6, color: "orange" }, // 6%
+    { threshold: 7, color: "darkorange" }, // 7%
+    { threshold: 8, color: "red" }, // 8%
+    { threshold: 9, color: "firebrick" }, // 9%
+    { threshold: 10, color: "crimson" }, // 10%
+    { threshold: 11, color: "darkred" }, // 11%
+    { threshold: 12, color: "brown" }, // 12%
+    { threshold: 13, color: "saddlebrown" }, // 13%
+    { threshold: 14, color: "chocolate" }, // 14%
+    { threshold: 15, color: "peru" }, // 15%
+    { threshold: 16, color: "orangeRed" }, // 16%
+    { threshold: 17, color: "tomato" }, // 17%
+    { threshold: 18, color: "salmon" }, // 18%
+    { threshold: 19, color: "lightcoral" }, // 19%
+    { threshold: 20, color: "darksalmon" }, // 20%
+    { threshold: 21, color: "coral" }, // 21%
+    { threshold: 22, color: "mediumvioletred" }, // 22%
+    { threshold: 23, color: "mediumseagreen" }, // 23%
+    { threshold: 24, color: "springgreen" }, // 24%
+    { threshold: 25, color: "deepskyblue" }, // 25%
+    { threshold: 26, color: "dodgerblue" }, // 26%
+    { threshold: 27, color: "royalblue" }, // 27%
+    { threshold: 28, color: "steelblue" }, // 28%
+    { threshold: 29, color: "cornflowerblue" }, // 29%
+    { threshold: 30, color: "slateblue" }, // 30%
+    { threshold: 31, color: "blue" }, // 31%
+    { threshold: 32, color: "darkblue" }, // 32%
+    { threshold: 33, color: "indigo" }, // 33%
+    { threshold: 34, color: "purple" }, // 34%
+    { threshold: 35, color: "darkviolet" }, // 35%
+    { threshold: 36, color: "violet" }, // 36%
+    { threshold: 37, color: "plum" }, // 37%
+    { threshold: 38, color: "orchid" }, // 38%
+    { threshold: 39, color: "lightpink" }, // 39%
+    { threshold: 40, color: "pink" }, // 40%
+    { threshold: 41, color: "hotpink" }, // 41%
+    { threshold: 50, color: "deeppink" }, // 42% and above
+    { threshold: 100, color: "black" }, // 51% and above
+  ];
+
+  console.log(148, transactions);
+
+  const onChange = (event: any, selectedDate: Date | undefined) => {
+    const currentDate = selectedDate || date;
+    setShowPicker(false);
+    setDate(currentDate);
+    setDateString(formatDate(currentDate));
+  };
+
+  function formatDate(date: Date) {
+    return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${(
+      "0" + date.getDate()
+    ).slice(-2)}`;
+  }
+
   const filterType = selected === "Income" ? incomeType : expenseType;
   const handleAddItem = async () => {
     console.log(42, modalVisible);
@@ -170,6 +256,138 @@ const Page = () => {
     transform: [{ scale: scaleValue }],
   };
 
+  const getAllStoreRow = async () => {
+    try {
+      const allRows: Income[] = await db.getAllAsync("SELECT * FROM income");
+      console.log(280, allRows);
+      setMyIncome(allRows);
+    } catch (error) {
+      console.log("Error while loading all income", error);
+    }
+  };
+
+  const addIncrementOrExpense = async (
+    selected: any,
+    dateString: any,
+    amount: any,
+    addNewType: any
+  ) => {
+    try {
+      const statement = await db.prepareAsync(
+        "INSERT INTO income (type, date, amount, incomeType) VALUES(?,?,?,?)"
+      );
+      await statement.executeAsync([selected, dateString, amount, addNewType]);
+      await getAllStoreRow();
+    } catch (error) {
+      console.log("Error while adding new income :", error);
+    }
+  };
+  const handleSubmit = () => {
+    addIncrementOrExpense(selected, dateString, amount, addNewType);
+    setModalVisible(false);
+  };
+
+  useEffect(() => {
+    // Calculate total income
+    const incomeTotal = myIncome
+      .filter((entry) => entry.type === "Income")
+      .reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+
+    // Calculate total expense
+    const expenseTotal = myIncome
+      .filter((entry) => entry.type === "Expense")
+      .reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+
+    // Update state
+    setTotalIncome(incomeTotal);
+    setTotalExpense(expenseTotal);
+  }, [myIncome]);
+
+  useEffect(() => {
+    // Filter data based on type
+    const incomeEntries = myIncome.filter((entry) => entry.type === "Income");
+    const expenseEntries = myIncome.filter((entry) => entry.type === "Expense");
+
+    // Store in state
+    setIncomeData(incomeEntries);
+    setExpenseData(expenseEntries);
+  }, [myIncome]);
+
+  useEffect(() => {
+    const totalIncome = myIncome
+      .filter((entry) => entry.type === "Income")
+      .reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+
+    const totalExpense = myIncome
+      .filter((entry) => entry.type === "Expense")
+      .reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+
+    const balance = totalIncome - totalExpense;
+    setRemainingBalance(balance);
+    const balancePercentage = (balance / totalIncome) * 100;
+    setRemainingPercentage(parseFloat(balancePercentage.toFixed(2)));
+
+    // Define the type for expenseMap
+    const expenseMap: Record<string, number> = {};
+
+    myIncome.forEach((entry) => {
+      if (entry.type === "Expense") {
+        const type = entry.incomeType.trim(); // Normalize the incomeType
+        if (!expenseMap[type]) {
+          expenseMap[type] = 0; // Initialize if it doesn't exist
+        }
+        expenseMap[type] += parseFloat(entry.amount); // Sum the amounts
+      }
+    });
+
+    // Create expense data for PieChart
+    const expenseData = Object.keys(expenseMap).map((type, index) => {
+      const percentage = (expenseMap[type] / totalIncome) * 100;
+
+      // Determine color based on percentage thresholds
+      let color = "";
+      for (let i = 0; i < colorMapping.length; i++) {
+        if (percentage <= colorMapping[i].threshold) {
+          color = colorMapping[i].color;
+          break;
+        }
+      }
+
+      return {
+        value: parseFloat(percentage.toFixed(2)), // rounded to two decimal places
+        color,
+        index,
+        amount: expenseMap[type], // Include the aggregated amount for the type
+        text: `${percentage.toFixed(2)}%`,
+        label: `${percentage.toFixed(2)}% - ${type}`, // Label includes the type
+        incomeType: type, // Store incomeType for display
+      };
+    });
+
+    setExpensePercentages(expenseData);
+  }, [myIncome]);
+  useEffect(() => {
+    getAllStoreRow();
+  }, []);
+
+  const handlePress = (index: any) => {
+    console.log(362, index);
+    setSelectedIndex(index); // Update the selected index when a section is pressed
+  };
+  // console.log(364, expensePercentages);
+  const centerLabelValue =
+    selectedIndex !== null
+      ? expensePercentages[selectedIndex]?.value !== undefined
+        ? `${expensePercentages[selectedIndex].value}%`
+        : `${remainingPercentage.toFixed(2)}%`
+      : `${remainingPercentage.toFixed(2)}%`; // Default to remaining percentage
+
+  const centerLabelText =
+    selectedIndex !== null
+      ? expensePercentages[selectedIndex]?.value !== undefined
+        ? expensePercentages[selectedIndex]?.label?.split("-")[1].trim() // Get the income type for display
+        : "Saving"
+      : "Saving"; // Default message if no selection
   return (
     <>
       <Stack.Screen
@@ -187,24 +405,81 @@ const Page = () => {
             }}
           >
             <View style={{ gap: 10 }}>
-              <Text style={{ color: Colors.white, fontSize: 16 }}>
-                My <Text style={{ fontWeight: 700 }}>Expenses</Text>
-              </Text>
-              <Text
-                style={{ color: Colors.white, fontSize: 36, fontWeight: 700 }}
-              >
-                $1475.<Text style={{ fontSize: 22, fontWeight: 400 }}>00</Text>
-              </Text>
+              <View>
+                <Text
+                  style={{
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: "900",
+                  }}
+                >
+                  Income
+                </Text>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  <FontAwesome6
+                    name="bangladeshi-taka-sign"
+                    size={16}
+                    color={Colors.white}
+                  />
+                  <Text
+                    style={{
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: "900",
+                    }}
+                  >
+                    {totalIncome}.
+                    <Text style={{ fontSize: 16, fontWeight: 400 }}>00</Text>
+                  </Text>
+                </View>
+              </View>
+              <View>
+                <Text
+                  style={{
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: "900",
+                  }}
+                >
+                  Expense
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <FontAwesome6
+                    name="bangladeshi-taka-sign"
+                    size={16}
+                    color={Colors.white}
+                  />
+                  <Text
+                    style={{
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: "900",
+                    }}
+                  >
+                    {totalExpense}.
+                    <Text style={{ fontSize: 16, fontWeight: 400 }}>00</Text>
+                  </Text>
+                </View>
+              </View>
             </View>
             <View style={{ paddingVertical: 20, alignItems: "center" }}>
               <PieChart
-                data={pieDate}
+                data={expensePercentages}
                 donut
                 showGradient
+                onPress={({ index }: any) => handlePress(index)}
                 sectionAutoFocus
                 focusOnPress
-                radius={60}
-                innerRadius={40}
+                radius={65}
+                innerRadius={35}
                 innerCircleColor={"#232B5D"}
                 centerLabelComponent={() => {
                   return (
@@ -213,15 +488,20 @@ const Page = () => {
                     >
                       <Text
                         style={{
-                          fontSize: 22,
+                          fontSize: 12,
                           color: "white",
-                          fontWeight: "bold",
                         }}
                       >
-                        47%
+                        {centerLabelValue}
                       </Text>
-                      <Text style={{ fontSize: 14, color: "white" }}>
-                        Excellent
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color: "white",
+                          textAlign: "center",
+                        }}
+                      >
+                        {centerLabelText}
                       </Text>
                     </View>
                   );
@@ -229,9 +509,12 @@ const Page = () => {
               />
             </View>
           </View>
-          <ExpenseBlock expensList={ExpensList} handleAddItem={handleAddItem} />
-          <IncomeBlock incomeList={IncomeLIst} />
-          <SpendingBlock spendingList={SpendingList} />
+          <ExpenseBlock
+            expenseList={expensePercentages}
+            handleAddItem={handleAddItem}
+          />
+          <IncomeBlock incomeList={incomeData} />
+          <SpendingBlock spendingList={expenseData} />
 
           <Modal
             transparent
@@ -282,7 +565,10 @@ const Page = () => {
                                   style={{
                                     fontSize: 12,
                                     fontWeight: "900",
-                                    color: Colors.white,
+                                    color:
+                                      selected === "Income"
+                                        ? Colors.black
+                                        : Colors.white,
                                   }}
                                 >
                                   (Credit)
@@ -315,7 +601,10 @@ const Page = () => {
                                   style={{
                                     fontSize: 12,
                                     fontWeight: "900",
-                                    color: Colors.white,
+                                    color:
+                                      selected === "Expense"
+                                        ? Colors.black
+                                        : Colors.white,
                                   }}
                                 >
                                   (Debit)
@@ -326,10 +615,37 @@ const Page = () => {
                         </View>
                       </View>
                     </TouchableOpacity>
+                    <View style={styles.timePickerContainer}>
+                      <TextInput
+                        value={dateString}
+                        editable={false}
+                        style={[styles.input, { flex: 0.4, fontSize: 14 }]}
+                      />
+                      <TouchableOpacity onPress={showDatePicker}>
+                        <MaterialIcons
+                          name="calendar-today"
+                          size={24}
+                          color={Colors.white}
+                        />
+                      </TouchableOpacity>
+
+                      {showPicker && (
+                        <View style={styles.pickerContainer}>
+                          <DateTimePicker
+                            value={date}
+                            mode="date"
+                            display="spinner"
+                            onChange={onChange}
+                            style={styles.datePicker}
+                            themeVariant="light" // If supported by your version
+                          />
+                        </View>
+                      )}
+                    </View>
                     <View style={styles.inputContainer}>
                       <View style={{ width: "90%" }}>
                         <TextInput
-                          style={[styles.inputFieldAmount, { fontSize: 20 }]}
+                          style={[styles.inputFieldAmount, { fontSize: 17 }]}
                           placeholder="Enter Amount"
                           keyboardType="numeric"
                           placeholderTextColor={Colors.blue}
@@ -349,7 +665,10 @@ const Page = () => {
                       {filterType?.map((item) => {
                         return (
                           <View key={item.id} style={{ width: "45%" }}>
-                            <TouchableOpacity style={styles.incomeBtnType}>
+                            <TouchableOpacity
+                              style={styles.incomeBtnType}
+                              onPress={() => setAddNewType(item.type)}
+                            >
                               <Text style={styles.incomeBtnText}>
                                 {item.type}
                               </Text>
@@ -358,32 +677,32 @@ const Page = () => {
                         );
                       })}
                     </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <View style={{ width: "10%" }}>
+                    <View style={{}}>
+                      <View style={{}}>
                         <Text
                           style={{
                             color: Colors.white,
-                            fontSize: 20,
+                            marginTop: 10,
+                            fontSize: 16,
                             fontWeight: "600",
+                            textAlign: "center",
                           }}
                         >
                           Or,
                         </Text>
                       </View>
-                      <View style={{ width: "90%" }}>
+                      <View style={{}}>
                         <TextInput
-                          style={[styles.inputFieldAmount, { fontSize: 16 }]}
-                          placeholder="Type Income Type"
+                          style={[styles.inputFieldAmount, { fontSize: 14 }]}
+                          placeholder={
+                            selected === "Income"
+                              ? "Enter Income Type"
+                              : "Enter Expense Type"
+                          }
                           keyboardType="default"
                           placeholderTextColor={Colors.blue}
-                          value={amount ? amount.toString() : ""}
-                          onChangeText={(text) => setAmount(text)}
+                          value={addNewType ? addNewType.toString() : ""}
+                          onChangeText={(text) => setAddNewType(text)}
                         />
                       </View>
                     </View>
@@ -400,10 +719,7 @@ const Page = () => {
                         <TouchableOpacity
                           onPressIn={handlePressIn}
                           onPressOut={handlePressOut}
-                          onPress={() => {
-                            // Handle save action here
-                            console.log("Save button pressed!");
-                          }}
+                          onPress={() => handleSubmit()}
                           activeOpacity={0.8}
                         >
                           <Text style={styles.buttonText}>Save</Text>
@@ -429,6 +745,30 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.black,
     paddingTop: StatusBar.currentHeight,
     paddingHorizontal: 20,
+  },
+  timePickerContainer: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: "auto",
+    paddingTop: 12,
+    marginRight: 10,
+    gap: 8,
+  },
+  input: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.white,
+    marginBottom: 6,
+    color: Colors.white,
+  },
+  pickerContainer: {
+    backgroundColor: "white",
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  datePicker: {
+    // Custom styles could be applied here but typically DateTimePicker has limited styling options
   },
   modalContainer: {
     flex: 1,
@@ -495,8 +835,8 @@ const styles = StyleSheet.create({
   },
   incomeBtnText: {
     color: Colors.white,
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "500",
     textAlign: "center",
   },
   buttonContainer: {
